@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow API
+  description: REST API of TaskFlow, a task management system for personal tasks.
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: Tasks
+    description: Manage tasks
+paths:
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: Get all tasks
+      operationId: getTasks
+      responses:
+        '200':
+          description: List of all tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    post:
+      tags: [Tasks]
+      summary: Create a new task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+  /api/tasks/stats:
+    get:
+      tags: [Tasks]
+      summary: Get task statistics
+      operationId: getTaskStats
+      responses:
+        '200':
+          description: Task statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStats'
+  /api/tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      tags: [Tasks]
+      summary: Get a single task
+      operationId: getTaskById
+      responses:
+        '200':
+          description: The requested task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+    put:
+      tags: [Tasks]
+      summary: Update a task
+      operationId: updateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+    delete:
+      tags: [Tasks]
+      summary: Delete a task
+      operationId: deleteTask
+      responses:
+        '204':
+          description: Task deleted
+components:
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: Unique ID of the task
+      schema:
+        type: integer
+  schemas:
+    Status:
+      type: string
+      enum: [OFFEN, IN_BEARBEITUNG, ABGESCHLOSSEN]
+    Priority:
+      type: string
+      enum: [NIEDRIG, MITTEL, HOCH]
+    Task:
+      type: object
+      required: [id, title, priority, status, changedAt]
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        title:
+          type: string
+          maxLength: 100
+          example: Write test cases
+        description:
+          type: string
+          maxLength: 100
+          example: Cover all six endpoints
+        priority:
+          $ref: '#/components/schemas/Priority'
+        status:
+          $ref: '#/components/schemas/Status'
+        changedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          example: '2026-10-28T09:30:00Z'
+    TaskInput:
+      type: object
+      required: [title, priority, status]
+      properties:
+        title:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 100
+        priority:
+          $ref: '#/components/schemas/Priority'
+        status:
+          $ref: '#/components/schemas/Status'
+    TaskStats:
+      type: object
+      description: Number of tasks per status and number of overdue tasks
+      required: [open, inProgress, completed, overdue]
+      properties:
+        open:
+          type: integer
+          description: Tasks with status OFFEN
+        inProgress:
+          type: integer
+          description: Tasks with status IN_BEARBEITUNG
+        completed:
+          type: integer
+          description: Tasks with status ABGESCHLOSSEN
+        overdue:
+          type: integer
+          description: Overdue tasks
