@@ -87,7 +87,7 @@ Die API verwendet JSON und liefert die passenden HTTP-Statuscodes. Die vollstän
 |---|---|---|---|---|---|
 | GET | `/api/tasks` | Alle Aufgaben abrufen (Filter, Paginierung) | 200 | 400 | Umejr |
 | GET | `/api/tasks/{id}` | Einzelne Aufgabe inklusive Statushistorie abrufen | 200 | 404 | Umejr |
-| GET | `/api/tasks/stats` | Statistiken abrufen | 200 | | Umejr |
+| GET | `/api/tasks/stats` | Statistiken abrufen (Anzahl pro Status in `byStatus`, plus `overdue`) | 200 | | Umejr |
 | POST | `/api/tasks` | Neue Aufgabe erstellen | 201 | 400 | Casper |
 | PUT | `/api/tasks/{id}` | Aufgabe aktualisieren | 200 | 400, 404 | Casper |
 | DELETE | `/api/tasks/{id}` | Aufgabe löschen | 204 | 404 | Casper |
@@ -128,7 +128,7 @@ Task {
   title         TEXT,
   description   TEXT,             -- optional
   priority      ENUM,
-  status        ENUM,             -- beim Erstellen optional, Standard: OFFEN
+  status        ENUM,             -- beim Erstellen (POST) optional, Standard: OFFEN; bei PUT Pflicht
   dueDate       DATE,             -- optional
   createdAt     TIMESTAMP,        -- automatisch, nicht änderbar
   changedAt     TIMESTAMP         -- Zeitpunkt der letzten Statusänderung

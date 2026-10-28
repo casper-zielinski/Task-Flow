@@ -129,13 +129,14 @@ paths:
       description: >
         Updates all attributes except the ID and the creation timestamp.
         A change of the status is stored in the status history.
+        This is a full replacement: title, priority and status are required.
       operationId: updateTask
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TaskInput'
+              $ref: '#/components/schemas/TaskUpdate'
       responses:
         '200':
           description: Task updated
@@ -260,20 +261,44 @@ components:
         dueDate:
           type: string
           format: date
+    TaskUpdate:
+      type: object
+      description: >
+        Full replacement of a task. Optional fields that are omitted
+        (description, dueDate) are cleared. The status is required, so it is never reset by accident.
+      required: [title, priority, status]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          $ref: '#/components/schemas/Priority'
+        status:
+          $ref: '#/components/schemas/Status'
+        dueDate:
+          type: string
+          format: date
     TaskStats:
       type: object
       description: Number of tasks per status and number of overdue tasks
-      required: [open, inProgress, completed, overdue]
+      required: [byStatus, overdue]
       properties:
-        open:
-          type: integer
-          description: Tasks with status OFFEN
-        inProgress:
-          type: integer
-          description: Tasks with status IN_BEARBEITUNG
-        completed:
-          type: integer
-          description: Tasks with status ABGESCHLOSSEN
+        byStatus:
+          type: object
+          description: Number of tasks per status, one key per Status value
+          required: [OFFEN, IN_BEARBEITUNG, ABGESCHLOSSEN]
+          properties:
+            OFFEN:
+              type: integer
+            IN_BEARBEITUNG:
+              type: integer
+            ABGESCHLOSSEN:
+              type: integer
+          example:
+            OFFEN: 5
+            IN_BEARBEITUNG: 2
+            ABGESCHLOSSEN: 8
         overdue:
           type: integer
           description: Overdue tasks (due date before today, status not ABGESCHLOSSEN)
