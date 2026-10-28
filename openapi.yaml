@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: TaskFlow API
   description: REST API of TaskFlow, a task management system for personal tasks.
-  version: 0.1.0
+  version: 0.2.0
 servers:
   - url: http://localhost:8080
     description: Local development
@@ -14,19 +14,67 @@ paths:
     get:
       tags: [Tasks]
       summary: Get all tasks
+      description: >
+        Returns the tasks, sorted by priority (HOCH first) and then by due date
+        (earliest first). All filters are optional and can be combined.
       operationId: getTasks
+      parameters:
+        - name: status
+          in: query
+          description: Only tasks with this status
+          schema:
+            $ref: '#/components/schemas/Status'
+        - name: priority
+          in: query
+          description: Only tasks with this priority
+          schema:
+            $ref: '#/components/schemas/Priority'
+        - name: due
+          in: query
+          description: Only tasks matching this due date filter
+          schema:
+            type: string
+            enum: [overdue, today, thisWeek]
+        - name: search
+          in: query
+          description: Search term, matched against title and description
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number, starting at 0
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of tasks per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
       responses:
         '200':
-          description: List of all tasks
+          description: List of tasks
+          headers:
+            X-Total-Count:
+              description: Total number of tasks matching the filters (all pages)
+              schema:
+                type: integer
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
     post:
       tags: [Tasks]
       summary: Create a new task
+      description: The ID and the creation timestamp are assigned automatically.
       operationId: createTask
       requestBody:
         required: true
@@ -41,6 +89,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /api/tasks/stats:
     get:
       tags: [Tasks]
@@ -59,6 +109,7 @@ paths:
     get:
       tags: [Tasks]
       summary: Get a single task
+      description: Returns all information of the task including the status history.
       operationId: getTaskById
       responses:
         '200':
@@ -66,10 +117,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Task'
+                $ref: '#/components/schemas/TaskDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
       tags: [Tasks]
       summary: Update a task
+      description: >
+        Updates all attributes except the ID and the creation timestamp.
+        A change of the status is stored in the status history.
       operationId: updateTask
       requestBody:
         required: true
@@ -84,6 +140,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
     delete:
       tags: [Tasks]
       summary: Delete a task
@@ -91,6 +151,8 @@ paths:
       responses:
         '204':
           description: Task deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   parameters:
     TaskId:
@@ -100,6 +162,19 @@ components:
       description: Unique ID of the task
       schema:
         type: integer
+  responses:
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Task not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
     Status:
       type: string
@@ -109,7 +184,7 @@ components:
       enum: [NIEDRIG, MITTEL, HOCH]
     Task:
       type: object
-      required: [id, title, priority, status, changedAt]
+      required: [id, title, priority, status, createdAt]
       properties:
         id:
           type: integer
@@ -117,35 +192,68 @@ components:
           example: 1
         title:
           type: string
-          maxLength: 100
           example: Write test cases
         description:
           type: string
-          maxLength: 100
           example: Cover all six endpoints
         priority:
           $ref: '#/components/schemas/Priority'
         status:
           $ref: '#/components/schemas/Status'
+        dueDate:
+          type: string
+          format: date
+          example: '2026-11-15'
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Creation timestamp, set automatically
+          example: '2026-10-28T09:30:00Z'
         changedAt:
           type: string
           format: date-time
           readOnly: true
-          example: '2026-10-28T09:30:00Z'
+          description: Timestamp of the last status change
+          example: '2026-10-29T14:00:00Z'
+    TaskDetail:
+      description: A task including the history of its status changes
+      allOf:
+        - $ref: '#/components/schemas/Task'
+        - type: object
+          required: [statusHistory]
+          properties:
+            statusHistory:
+              type: array
+              readOnly: true
+              description: Status changes, oldest first
+              items:
+                $ref: '#/components/schemas/StatusChange'
+    StatusChange:
+      type: object
+      required: [status, changedAt]
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'
+        changedAt:
+          type: string
+          format: date-time
+          example: '2026-10-29T14:00:00Z'
     TaskInput:
       type: object
       required: [title, priority, status]
       properties:
         title:
           type: string
-          maxLength: 100
         description:
           type: string
-          maxLength: 100
         priority:
           $ref: '#/components/schemas/Priority'
         status:
           $ref: '#/components/schemas/Status'
+        dueDate:
+          type: string
+          format: date
     TaskStats:
       type: object
       description: Number of tasks per status and number of overdue tasks
@@ -163,3 +271,15 @@ components:
         overdue:
           type: integer
           description: Overdue tasks
+    Error:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Clear message with a hint on how to fix the problem
+          example: Title must not be empty

@@ -81,32 +81,59 @@ Kurzfassung der Anforderungen aus der Spezifikation:
 
 ## REST-API
 
-Die API verwendet JSON und liefert die passenden HTTP-Statuscodes.
+Die API verwendet JSON und liefert die passenden HTTP-Statuscodes. Die vollständige Beschreibung steht in [`openapi.yaml`](openapi.yaml) (OpenAPI 3.0.3). Diese Datei ist der Vertrag zwischen Frontend und Backend: Änderungen an der API kommen zuerst dorthin.
 
-| Methode | Pfad | Beschreibung | Zuständig |
-|---|---|---|---|
-| GET | `/api/tasks` | Alle Aufgaben abrufen | Umejr |
-| GET | `/api/tasks/{id}` | Einzelne Aufgabe abrufen | Umejr |
-| GET | `/api/tasks/stats` | Statistiken abrufen | Umejr |
-| POST | `/api/tasks` | Neue Aufgabe erstellen | Casper |
-| PUT | `/api/tasks/{id}` | Aufgabe aktualisieren | Casper |
-| DELETE | `/api/tasks/{id}` | Aufgabe löschen | Casper |
+| Methode | Pfad | Beschreibung | Erfolg | Fehler | Zuständig |
+|---|---|---|---|---|---|
+| GET | `/api/tasks` | Alle Aufgaben abrufen (Filter, Paginierung) | 200 | 400 | Umejr |
+| GET | `/api/tasks/{id}` | Einzelne Aufgabe inklusive Statushistorie abrufen | 200 | 404 | Umejr |
+| GET | `/api/tasks/stats` | Statistiken abrufen | 200 | | Umejr |
+| POST | `/api/tasks` | Neue Aufgabe erstellen | 201 | 400 | Casper |
+| PUT | `/api/tasks/{id}` | Aufgabe aktualisieren | 200 | 400, 404 | Casper |
+| DELETE | `/api/tasks/{id}` | Aufgabe löschen | 204 | 404 | Casper |
+
+### Filter und Sortierung (`GET /api/tasks`)
+
+Alle Parameter sind optional und kombinierbar. Standardmäßig wird nach Priorität und danach nach Fälligkeitsdatum sortiert.
+
+| Parameter | Werte | Bedeutung |
+|---|---|---|
+| `status` | `OFFEN`, `IN_BEARBEITUNG`, `ABGESCHLOSSEN` | Nur Aufgaben mit diesem Status |
+| `priority` | `NIEDRIG`, `MITTEL`, `HOCH` | Nur Aufgaben mit dieser Priorität |
+| `due` | `overdue`, `today`, `thisWeek` | Überfällig, heute fällig, diese Woche fällig |
+| `search` | Text | Suchbegriff in Titel oder Beschreibung |
+| `page`, `size` | Zahlen | Paginierung (Standard: Seite 0, 50 pro Seite, maximal 500). Die Gesamtzahl steht im Header `X-Total-Count`. |
+
+### Fehlerformat
+
+Fehlerantworten (400, 404) enthalten ein JSON-Objekt mit `status` und `message`. Die Nachricht enthält einen Hinweis zur Korrektur.
 
 ## Datenmodell
 
+Alle Feldnamen sind englisch, nur die Werte der Enums sind deutsch.
+
 ```
 Task {
-  id            INTEGER UNIQUE,
-  Title         VARCHAR(100),
-  Beschreibung  VARCHAR(100),
-  Priorität     ENUM,
-  Status        ENUM,
-  changedAt     Date
+  id            INTEGER UNIQUE,   -- automatisch vergeben
+  title         TEXT,
+  description   TEXT,             -- optional
+  priority      ENUM,
+  status        ENUM,
+  dueDate       DATE,             -- optional
+  createdAt     TIMESTAMP,        -- automatisch, nicht änderbar
+  changedAt     TIMESTAMP         -- Zeitpunkt der letzten Statusänderung
+}
+
+StatusChange {                    -- Historie der Statusänderungen einer Aufgabe
+  status        ENUM,
+  changedAt     TIMESTAMP
 }
 
 Status    { OFFEN, IN_BEARBEITUNG, ABGESCHLOSSEN }
-Priorität { NIEDRIG, MITTEL, HOCH }
+Priority  { NIEDRIG, MITTEL, HOCH }
 ```
+
+Die Detailansicht (`GET /api/tasks/{id}`) liefert zusätzlich die Liste `statusHistory` mit den `StatusChange`-Einträgen. Die Listenansicht enthält sie nicht.
 
 ## Qualitätsanforderungen
 
