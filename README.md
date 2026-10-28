@@ -100,13 +100,23 @@ Alle Parameter sind optional und kombinierbar. Standardmäßig wird nach Priorit
 |---|---|---|
 | `status` | `OFFEN`, `IN_BEARBEITUNG`, `ABGESCHLOSSEN` | Nur Aufgaben mit diesem Status |
 | `priority` | `NIEDRIG`, `MITTEL`, `HOCH` | Nur Aufgaben mit dieser Priorität |
-| `due` | `overdue`, `today`, `thisWeek` | Überfällig, heute fällig, diese Woche fällig |
+| `due` | `overdue`, `today`, `thisWeek` | Überfällig (Fälligkeit vor heute), heute fällig, diese Woche fällig (Montag bis Sonntag). Abgeschlossene Aufgaben sind nie überfällig. |
 | `search` | Text | Suchbegriff in Titel oder Beschreibung |
 | `page`, `size` | Zahlen | Paginierung (Standard: Seite 0, 50 pro Seite, maximal 500). Die Gesamtzahl steht im Header `X-Total-Count`. |
 
 ### Fehlerformat
 
-Fehlerantworten (400, 404) enthalten ein JSON-Objekt mit `status` und `message`. Die Nachricht enthält einen Hinweis zur Korrektur.
+Fehlermeldungen sind auf Englisch. Fehlerantworten (400, 404) enthalten ein JSON-Objekt mit `status` (Zahl) und `message`. Die Nachricht enthält einen Hinweis zur Korrektur. Bei Validierungsfehlern (400) kommt zusätzlich die Liste `errors` mit `field` und `message` pro ungültigem Feld.
+
+```json
+{
+  "status": 400,
+  "message": "One or more fields are invalid.",
+  "errors": [
+    { "field": "title", "message": "must not be empty" }
+  ]
+}
+```
 
 ## Datenmodell
 
@@ -118,7 +128,7 @@ Task {
   title         TEXT,
   description   TEXT,             -- optional
   priority      ENUM,
-  status        ENUM,
+  status        ENUM,             -- beim Erstellen optional, Standard: OFFEN
   dueDate       DATE,             -- optional
   createdAt     TIMESTAMP,        -- automatisch, nicht änderbar
   changedAt     TIMESTAMP         -- Zeitpunkt der letzten Statusänderung
@@ -163,7 +173,7 @@ Die Qualitätsziele basieren auf der Norm ISO 25010 und sind mit messbaren Zielw
 
 - [Docker](https://www.docker.com/) mit Docker Compose
 - Für die lokale Entwicklung ohne Container zusätzlich ein JDK 21 (Maven muss nicht installiert sein, der Wrapper `mvnw` ist im Repository enthalten)
-- Die Ports **5432** (Datenbank) und **8080** (Backend) müssen frei sein
+- Die Ports **5432** (Datenbank), **8080** (Backend) und **8081** (Swagger UI) müssen frei sein
 
 ### Variante 1: Alles mit Docker Compose (empfohlen)
 
@@ -205,6 +215,10 @@ docker compose up -d db
 ```
 
 Das lokal laufende Backend verbindet sich über `localhost:5432` mit der Datenbank (siehe `backend/src/main/resources/application.properties`).
+
+### API-Dokumentation (Swagger UI)
+
+Mit `docker compose up` im Projekt-Root startet auch Swagger UI. Sie zeigt `openapi.yaml` unter http://localhost:8081. Änderungen an der Datei sind nach einem Reload im Browser sichtbar.
 
 ### Prüfen, ob alles läuft
 

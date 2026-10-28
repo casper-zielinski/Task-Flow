@@ -31,7 +31,10 @@ paths:
             $ref: '#/components/schemas/Priority'
         - name: due
           in: query
-          description: Only tasks matching this due date filter
+          description: >
+            Only tasks matching this due date filter. Completed tasks (ABGESCHLOSSEN)
+            are never overdue. overdue = due date before today; today = due date is
+            today; thisWeek = due date from Monday to Sunday of the current week.
           schema:
             type: string
             enum: [overdue, today, thisWeek]
@@ -241,7 +244,7 @@ components:
           example: '2026-10-29T14:00:00Z'
     TaskInput:
       type: object
-      required: [title, priority, status]
+      required: [title, priority]
       properties:
         title:
           type: string
@@ -250,7 +253,10 @@ components:
         priority:
           $ref: '#/components/schemas/Priority'
         status:
-          $ref: '#/components/schemas/Status'
+          allOf:
+            - $ref: '#/components/schemas/Status'
+          default: OFFEN
+          description: Defaults to OFFEN if omitted
         dueDate:
           type: string
           format: date
@@ -270,7 +276,7 @@ components:
           description: Tasks with status ABGESCHLOSSEN
         overdue:
           type: integer
-          description: Overdue tasks
+          description: Overdue tasks (due date before today, status not ABGESCHLOSSEN)
     Error:
       type: object
       required: [status, message]
@@ -281,5 +287,22 @@ components:
           example: 400
         message:
           type: string
-          description: Clear message with a hint on how to fix the problem
-          example: Title must not be empty
+          description: Clear message in English with a hint on how to fix the problem
+          example: One or more fields are invalid.
+        errors:
+          type: array
+          description: Field-level errors, only present for validation errors (400)
+          items:
+            $ref: '#/components/schemas/FieldError'
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          description: Name of the invalid field
+          example: title
+        message:
+          type: string
+          description: What is wrong with the field
+          example: must not be empty
