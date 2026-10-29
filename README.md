@@ -64,8 +64,6 @@ Aufteilung der Endpunkte: Umejr implementiert die lesenden Endpunkte (**GET**), 
 | Qualitätssicherung | SonarQube, Checkstyle, CI-Pipeline (Build, Tests, Checkstyle) |
 | Frontend | noch offen |
 
-Hinweis: In der Anforderungsspezifikation ist SQLite als Datenbank genannt. Das Team hat sich für **PostgreSQL** entschieden.
-
 ## Funktionale Anforderungen
 
 Kurzfassung der Anforderungen aus der Spezifikation:
