@@ -6,11 +6,11 @@ import com.taskflow.taskflow.entity.TaskEntity;
 
 @Service 
 public class TaskMutationService {
-      public TaskEntity createTask(TaskInput taskInput) {
+      public TaskEntity createTask(TaskInput taskInput) throws Exception {
             return new TaskEntity();
       }
 
-      public TaskEntity updateTask(TaskInput taskInput) {
+      public TaskEntity updateTask(int id, TaskInput taskInput) {
             return new TaskEntity();
       }
 
