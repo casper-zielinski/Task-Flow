@@ -1,14 +1,20 @@
 package com.taskflow.taskflow.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
-import org.springframework.stereotype.Service;
 import com.taskflow.taskflow.dto.Status;
 import com.taskflow.taskflow.dto.TaskInput;
+import com.taskflow.taskflow.dto.TaskResponse;
+import com.taskflow.taskflow.dto.TaskUpdate;
+import com.taskflow.taskflow.entity.StatusChangeEntity;
 import com.taskflow.taskflow.entity.TaskEntity;
 import com.taskflow.taskflow.exception.InvalidTaskException;
+import com.taskflow.taskflow.exception.TaskNotFoundException;
 import com.taskflow.taskflow.repository.TaskRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.stereotype.Service;
 
 @Service
 public class TaskMutationService {
@@ -19,7 +25,7 @@ public class TaskMutationService {
         this.taskRepository = taskRepository;
     }
 
-    public TaskEntity createTask(TaskInput taskInput) {
+    public TaskResponse createTask(TaskInput taskInput) {
 
         if (taskInput == null) {
             throw new InvalidTaskException("Task input must not be null");
@@ -31,14 +37,7 @@ public class TaskMutationService {
             throw new InvalidTaskException("Priority must not be null");
         }
 
-        LocalDate dueDate = null;
-        if (taskInput.getDueDate() != null) {
-            try {
-                dueDate = LocalDate.parse(taskInput.getDueDate());
-            } catch (DateTimeParseException e) {
-                throw new InvalidTaskException("Due date must be an ISO date (yyyy-MM-dd)");
-            }
-        }
+        LocalDate dueDate = parseDueDate(taskInput.getDueDate());
 
         Status status = taskInput.getStatus() != null ? taskInput.getStatus() : Status.OFFEN;
 
@@ -50,14 +49,71 @@ public class TaskMutationService {
                 .dueDate(dueDate)
                 .build();
 
-        return taskRepository.save(newTask);
+        recordStatus(newTask, status, Instant.now());
+
+        return TaskResponse.from(taskRepository.save(newTask));
     }
 
-    public TaskEntity updateTask(int id, TaskInput taskInput) {
-        return new TaskEntity();
+    @Transactional
+    public TaskResponse updateTask(int id, TaskUpdate taskUpdate) {
+
+        if (taskUpdate == null) {
+            throw new InvalidTaskException("Task update input must not be null");
+        }
+
+        TaskEntity task = taskRepository.findById(id).orElseThrow(
+                () -> new TaskNotFoundException("Task with ID: " + id + " not found")
+        );
+
+        if (taskUpdate.getTitle() == null || taskUpdate.getTitle().isBlank()) {
+            throw new InvalidTaskException("Title must not be blank");
+        }
+        if (taskUpdate.getPriority() == null) {
+            throw new InvalidTaskException("Priority must not be null");
+        }
+        if (taskUpdate.getStatus() == null) {
+            throw new InvalidTaskException("Status must not be null");
+        }
+        LocalDate dueDate = parseDueDate(taskUpdate.getDueDate());
+
+        task.setTitle(taskUpdate.getTitle());
+        task.setDescription(taskUpdate.getDescription());
+        task.setPriority(taskUpdate.getPriority());
+        task.setDueDate(dueDate);
+
+        if (task.getStatus() != taskUpdate.getStatus()) {
+            recordStatus(task, taskUpdate.getStatus(), Instant.now());
+        }
+
+        return TaskResponse.from(taskRepository.save(task));
     }
 
     public void deleteTask(int id) {
-        taskRepository.deleteById(id);
+        if (taskRepository.existsById(id)) {
+            taskRepository.deleteById(id);
+        } else {
+            throw new TaskNotFoundException("Task with ID: " + id + " not found");
+        }
+    }
+
+    private void recordStatus(TaskEntity task, Status status, Instant changedAt) {
+        task.setStatus(status);
+        task.setChangedAt(changedAt);
+        task.getStatusHistory().add(StatusChangeEntity.builder()
+                .task(task)
+                .status(status)
+                .changedAt(changedAt)
+                .build());
+    }
+
+    private LocalDate parseDueDate(String dueDate) {
+        if (dueDate == null) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(dueDate);
+        } catch (DateTimeParseException e) {
+            throw new InvalidTaskException("Due date must be an ISO date (yyyy-MM-dd)");
+        }
     }
 }

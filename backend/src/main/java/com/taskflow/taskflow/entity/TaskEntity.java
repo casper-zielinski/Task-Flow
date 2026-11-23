@@ -29,10 +29,8 @@ import jakarta.persistence.Table;
 @Setter
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class TaskEntity {
-
-    public TaskEntity() {
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -67,5 +65,6 @@ public class TaskEntity {
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("changedAt ASC")
+    @Builder.Default
     private List<StatusChangeEntity> statusHistory = new ArrayList<>();
 }

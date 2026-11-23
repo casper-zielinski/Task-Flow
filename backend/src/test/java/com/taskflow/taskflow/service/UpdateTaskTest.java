@@ -9,7 +9,7 @@ import static com.taskflow.taskflow.service.UtilTest.givenExistingTask;
 import static com.taskflow.taskflow.service.UtilTest.givenNoTask;
 import static com.taskflow.taskflow.service.UtilTest.givenSaveReturnsArgument;
 import static com.taskflow.taskflow.service.UtilTest.savedEntity;
-import static com.taskflow.taskflow.service.UtilTest.validInput;
+import static com.taskflow.taskflow.service.UtilTest.validUpdate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,7 +36,8 @@ import org.mockito.quality.Strictness;
 
 import com.taskflow.taskflow.dto.Priority;
 import com.taskflow.taskflow.dto.Status;
-import com.taskflow.taskflow.dto.TaskInput;
+import com.taskflow.taskflow.dto.TaskResponse;
+import com.taskflow.taskflow.dto.TaskUpdate;
 import com.taskflow.taskflow.entity.StatusChangeEntity;
 import com.taskflow.taskflow.entity.TaskEntity;
 import com.taskflow.taskflow.exception.InvalidTaskException;
@@ -70,15 +71,15 @@ class UpdateTaskTest {
       void unknownId_throwsNotFoundAndDoesNotSave() {
             givenNoTask(repository);
 
-            assertThrows(TaskNotFoundException.class, () -> service.updateTask(ID, validInput()));
+            assertThrows(TaskNotFoundException.class, () -> service.updateTask(ID, validUpdate()));
 
             verify(repository, never()).save(any(TaskEntity.class));
       }
 
       @Test
-      void validInput_replacesAllAttributes() {
+      void validUpdate_replacesAllAttributes() {
             givenExistingTask(repository, existingTask(Status.OFFEN));
-            TaskInput input = new TaskInput("New title", "New description", Priority.HOCH,
+            TaskUpdate input = new TaskUpdate("New title", "New description", Priority.HOCH,
                         Status.IN_BEARBEITUNG, "2026-12-24");
 
             service.updateTask(ID, input);
@@ -97,16 +98,16 @@ class UpdateTaskTest {
             TaskEntity fromDatabase = existingTask(Status.OFFEN);
             when(repository.save(any(TaskEntity.class))).thenReturn(fromDatabase);
 
-            TaskEntity result = service.updateTask(ID, validInput());
+            TaskResponse result = service.updateTask(ID, validUpdate());
 
-            assertThat(result).isSameAs(fromDatabase);
+            assertThat(result).isEqualTo(TaskResponse.from(fromDatabase));
       }
 
       @Test
       void keepsIdAndCreatedAt() {
             givenExistingTask(repository, existingTask(Status.OFFEN));
 
-            service.updateTask(ID, validInput());
+            service.updateTask(ID, validUpdate());
 
             TaskEntity saved = savedEntity(repository);
             assertThat(saved.getId()).isEqualTo(ID);
@@ -116,7 +117,7 @@ class UpdateTaskTest {
       @Test
       void optionalFieldsOmitted_areCleared() {
             givenExistingTask(repository, existingTask(Status.OFFEN));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setDescription(null);
             input.setDueDate(null);
 
@@ -130,7 +131,7 @@ class UpdateTaskTest {
       @Test
       void statusChanged_addsHistoryEntryAndUpdatesChangedAt() {
             givenExistingTask(repository, existingTask(Status.OFFEN));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setStatus(Status.IN_BEARBEITUNG);
 
             Instant before = Instant.now();
@@ -148,7 +149,7 @@ class UpdateTaskTest {
       @Test
       void statusChanged_keepsExistingHistoryOldestFirst() {
             givenExistingTask(repository, existingTask(Status.OFFEN));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setStatus(Status.ABGESCHLOSSEN);
 
             service.updateTask(ID, input);
@@ -163,7 +164,7 @@ class UpdateTaskTest {
       @Test
       void statusUnchanged_doesNotTouchHistoryOrChangedAt() {
             givenExistingTask(repository, existingTask(Status.IN_BEARBEITUNG));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setStatus(Status.IN_BEARBEITUNG);
 
             service.updateTask(ID, input);
@@ -187,7 +188,7 @@ class UpdateTaskTest {
       @ValueSource(strings = { " ", "   " })
       void titleBlank_throwsInvalidTask(String title) {
             givenExistingTask(repository, existingTask(Status.OFFEN));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setTitle(title);
 
             assertThrows(InvalidTaskException.class, () -> service.updateTask(ID, input));
@@ -198,7 +199,7 @@ class UpdateTaskTest {
       @Test
       void priorityMissing_throwsInvalidTask() {
             givenExistingTask(repository, existingTask(Status.OFFEN));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setPriority(null);
 
             assertThrows(InvalidTaskException.class, () -> service.updateTask(ID, input));
@@ -210,7 +211,7 @@ class UpdateTaskTest {
       void statusMissing_throwsInvalidTask() {
             // unlike POST, the status is required for PUT so it is never reset by accident
             givenExistingTask(repository, existingTask(Status.IN_BEARBEITUNG));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setStatus(null);
 
             assertThrows(InvalidTaskException.class, () -> service.updateTask(ID, input));
@@ -222,7 +223,7 @@ class UpdateTaskTest {
       @MethodSource("invalidDueDates")
       void dueDateNotIsoDate_throwsInvalidTask(String dueDate) {
             givenExistingTask(repository, existingTask(Status.OFFEN));
-            TaskInput input = validInput();
+            TaskUpdate input = validUpdate();
             input.setDueDate(dueDate);
 
             assertThrows(InvalidTaskException.class, () -> service.updateTask(ID, input));

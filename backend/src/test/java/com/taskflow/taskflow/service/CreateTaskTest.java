@@ -12,6 +12,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,8 @@ import org.mockito.quality.Strictness;
 import com.taskflow.taskflow.dto.Priority;
 import com.taskflow.taskflow.dto.Status;
 import com.taskflow.taskflow.dto.TaskInput;
+import com.taskflow.taskflow.dto.TaskResponse;
+import com.taskflow.taskflow.entity.StatusChangeEntity;
 import com.taskflow.taskflow.entity.TaskEntity;
 import com.taskflow.taskflow.exception.InvalidTaskException;
 import com.taskflow.taskflow.repository.TaskRepository;
@@ -74,9 +77,34 @@ class CreateTaskTest {
             TaskEntity fromDatabase = existingTask(Status.OFFEN);
             when(repository.save(any(TaskEntity.class))).thenReturn(fromDatabase);
 
-            TaskEntity result = service.createTask(validInput());
+            TaskResponse result = service.createTask(validInput());
 
-            assertThat(result).isSameAs(fromDatabase);
+            assertThat(result).isEqualTo(TaskResponse.from(fromDatabase));
+      }
+
+      @Test
+      void createsInitialHistoryEntryWithStartStatus() throws Exception {
+            TaskInput input = validInput();
+            input.setStatus(Status.IN_BEARBEITUNG);
+
+            service.createTask(input);
+
+            TaskEntity saved = savedEntity(repository);
+            assertThat(saved.getStatusHistory()).hasSize(1);
+            StatusChangeEntity initial = saved.getStatusHistory().get(0);
+            assertThat(initial.getStatus()).isEqualTo(Status.IN_BEARBEITUNG);
+            assertThat(initial.getTask()).isSameAs(saved);
+      }
+
+      @Test
+      void setsChangedAtToTheInitialHistoryEntry() throws Exception {
+            Instant before = Instant.now();
+            service.createTask(validInput());
+            Instant after = Instant.now();
+
+            TaskEntity saved = savedEntity(repository);
+            assertThat(saved.getChangedAt()).isBetween(before, after);
+            assertThat(saved.getStatusHistory().get(0).getChangedAt()).isEqualTo(saved.getChangedAt());
       }
 
       @Test

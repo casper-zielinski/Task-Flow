@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import com.taskflow.taskflow.dto.Priority;
 import com.taskflow.taskflow.dto.Status;
 import com.taskflow.taskflow.dto.TaskInput;
+import com.taskflow.taskflow.dto.TaskUpdate;
 import com.taskflow.taskflow.entity.StatusChangeEntity;
 import com.taskflow.taskflow.entity.TaskEntity;
 import com.taskflow.taskflow.repository.TaskRepository;
@@ -36,6 +37,11 @@ final class UtilTest {
 
       static TaskInput validInput() {
             return new TaskInput("Write test cases", "Cover all six endpoints", Priority.HOCH,
+                        Status.OFFEN, "2026-11-15");
+      }
+
+      static TaskUpdate validUpdate() {
+            return new TaskUpdate("Write test cases", "Cover all six endpoints", Priority.HOCH,
                         Status.OFFEN, "2026-11-15");
       }
 

@@ -15,29 +15,31 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "status_changes")
 @Getter
 @Setter
-@NoArgsConstructor
+@Builder
+@AllArgsConstructor
 public class StatusChangeEntity {
 
-      @Id
-      @GeneratedValue(strategy = GenerationType.IDENTITY)
-      private Long id;
+    public StatusChangeEntity() {
+    }
 
-      @ManyToOne(fetch = FetchType.LAZY, optional = false)
-      @JoinColumn(name = "task_id", nullable = false)
-      private TaskEntity task;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-      @Enumerated(EnumType.STRING)
-      @Column(nullable = false)
-      private Status status;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "task_id", nullable = false)
+    private TaskEntity task;
 
-      @Column(name = "changed_at", nullable = false)
-      private Instant changedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status;
+
+    @Column(name = "changed_at", nullable = false)
+    private Instant changedAt;
 }
