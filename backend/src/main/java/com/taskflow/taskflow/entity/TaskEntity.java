@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import com.taskflow.taskflow.dto.Priority;
@@ -21,47 +22,50 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "tasks")
 @Getter
 @Setter
-@NoArgsConstructor
+@Builder
+@AllArgsConstructor
 public class TaskEntity {
 
-      @Id
-      @GeneratedValue(strategy = GenerationType.IDENTITY)
-      private Integer id;
+    public TaskEntity() {
+    }
 
-      @Column(nullable = false)
-      private String title;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-      @Column(columnDefinition = "TEXT")
-      private String description;
+    @Column(nullable = false)
+    private String title;
 
-      @Enumerated(EnumType.STRING)
-      @Column(nullable = false)
-      private Priority priority;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-      @Enumerated(EnumType.STRING)
-      @Column(nullable = false)
-      private Status status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Priority priority;
 
-      @Column(name = "due_date")
-      private LocalDate dueDate;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status;
 
-      @CreationTimestamp
-      @Column(name = "created_at", nullable = false, updatable = false)
-      private Instant createdAt;
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
-      /** Zeitpunkt der letzten Statusänderung. */
-      @Column(name = "changed_at")
-      private Instant changedAt;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
-      @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-      @OrderBy("changedAt ASC")
-      private List<StatusChangeEntity> statusHistory = new ArrayList<>();
+    /**
+     * Zeitpunkt der letzten Statusänderung.
+     */
+    @Column(name = "changed_at")
+    private Instant changedAt;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("changedAt ASC")
+    private List<StatusChangeEntity> statusHistory = new ArrayList<>();
 }
