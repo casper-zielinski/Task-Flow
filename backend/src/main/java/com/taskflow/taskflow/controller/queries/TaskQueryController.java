@@ -18,7 +18,7 @@ import java.util.List;
  * Read-only endpoints for tasks (GET). See openapi.yaml for the contract.
  */
 @RestController
-@RequestMapping("/api/tasks")
+@RequestMapping("/tasks")
 public class TaskQueryController {
 
     private final TaskQueryService taskQueryService;
