@@ -226,6 +226,12 @@ components:
     TaskInput:
       type: object
       required: [title, priority]
+      example:
+        title: Write test cases
+        description: Cover all six endpoints
+        priority: HOCH
+        status: OFFEN
+        dueDate: '2026-11-15'
       properties:
         title:
           type: string
@@ -247,6 +253,12 @@ components:
         Full replacement of a task. Optional fields that are omitted
         (description, dueDate) are cleared. The status is required, so it is never reset by accident.
       required: [title, priority, status]
+      example:
+        title: Write test cases
+        description: Cover all six endpoints
+        priority: HOCH
+        status: IN_BEARBEITUNG
+        dueDate: '2026-11-20'
       properties:
         title:
           type: string
